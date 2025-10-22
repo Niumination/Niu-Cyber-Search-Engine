@@ -75,6 +75,9 @@ export default function Home() {
         if (data.success && data.results) {
           setResults(data.results)
           console.log('✅ Search successful, results:', data.results.length)
+          if (data.mock) {
+            console.log('🎭 Mock results returned (ZAI API unavailable)')
+          }
         } else {
           console.log('⚠️ No results found')
           setResults([])
@@ -207,6 +210,11 @@ export default function Home() {
                   <p className="text-green-400 font-mono">
                     FOUND {results.length} RESULTS_IN_THE_MATRIX
                   </p>
+                  {results.some(r => (r as any).mock) && (
+                    <p className="text-yellow-400 font-mono text-sm mt-2">
+                      🎭 SIMULATION_MODE - ZAI_API_UNAVAILABLE
+                    </p>
+                  )}
                 </div>
                 {results.map((result, index) => (
                   <Card 
