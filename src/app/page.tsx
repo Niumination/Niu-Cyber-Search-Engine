@@ -23,6 +23,7 @@ export default function Home() {
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,8 +31,10 @@ export default function Home() {
 
     setLoading(true)
     setSearched(true)
+    setError(null)
 
     try {
+      console.log('🔍 Sending search request for:', query)
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
@@ -40,12 +43,26 @@ export default function Home() {
         body: JSON.stringify({ query }),
       })
 
+      const data = await response.json()
+      console.log('📡 API Response:', data)
+
       if (response.ok) {
-        const data = await response.json()
-        setResults(data.results || [])
+        if (data.success && data.results) {
+          setResults(data.results)
+          console.log('✅ Search successful, results:', data.results.length)
+        } else {
+          console.log('⚠️ No results found')
+          setResults([])
+        }
+      } else {
+        console.error('❌ API Error:', data)
+        setError(data.error || 'Search failed')
+        setResults([])
       }
     } catch (error) {
-      console.error('Search failed:', error)
+      console.error('💥 Network error:', error)
+      setError('Network error - please try again')
+      setResults([])
     } finally {
       setLoading(false)
     }
@@ -143,6 +160,18 @@ export default function Home() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <p className="text-red-400 font-mono text-lg mb-4">
+                  &gt; SEARCH_ERROR_DETECTED
+                </p>
+                <p className="text-orange-400 font-mono mb-4">
+                  {error}
+                </p>
+                <p className="text-green-600 font-mono text-sm">
+                  CHECK_CONSOLE_LOGS_FOR_DETAILS_OR_TRY_AGAIN
+                </p>
               </div>
             ) : results.length > 0 ? (
               <div className="space-y-4">
