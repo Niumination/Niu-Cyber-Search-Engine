@@ -43,8 +43,33 @@ export default function Home() {
         body: JSON.stringify({ query }),
       })
 
-      const data = await response.json()
-      console.log('📡 API Response:', data)
+      console.log('📡 Response status:', response.status)
+      console.log('📡 Response headers:', response.headers)
+
+      // Check if response is valid JSON
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('❌ Invalid content type:', contentType)
+        setError('Invalid API response format')
+        setResults([])
+        return
+      }
+
+      const responseText = await response.text()
+      console.log('📡 Raw response:', responseText.substring(0, 500))
+
+      let data
+      try {
+        data = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('❌ JSON parse error:', parseError)
+        console.error('❌ Response text:', responseText)
+        setError('Invalid JSON response from server')
+        setResults([])
+        return
+      }
+
+      console.log('📡 Parsed API Response:', data)
 
       if (response.ok) {
         if (data.success && data.results) {
@@ -53,10 +78,13 @@ export default function Home() {
         } else {
           console.log('⚠️ No results found')
           setResults([])
+          if (data.error) {
+            setError(data.error)
+          }
         }
       } else {
         console.error('❌ API Error:', data)
-        setError(data.error || 'Search failed')
+        setError(data.error || data.message || 'Search failed')
         setResults([])
       }
     } catch (error) {
