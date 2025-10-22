@@ -22,8 +22,15 @@ export async function POST(request: NextRequest) {
 
     console.log('🚀 Initializing ZAI SDK...')
     
-    // Check if API key is available
-    const apiKey = process.env.ZAI_API_KEY || process.env.NEXT_PUBLIC_ZAI_API_KEY
+    // Check if API key is available - with fallback
+    let apiKey = process.env.ZAI_API_KEY || process.env.NEXT_PUBLIC_ZAI_API_KEY
+    
+    // Fallback to hardcoded key for Vercel deployment
+    if (!apiKey) {
+      console.log('⚠️ No env API key found, using fallback')
+      apiKey = '1d4b30969331418796a424cdfe429c05.TAizXwSJnHBdHcHU'
+    }
+    
     if (!apiKey) {
       console.log('❌ No API key found')
       return NextResponse.json(
