@@ -36,15 +36,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log('✅ API key found, length:', apiKey.length)
+    
     // Initialize ZAI SDK with API key
     const zai = await ZAI.create({ apiKey })
     console.log('✅ ZAI SDK initialized successfully')
 
     console.log('🌐 Performing web search for:', query)
     
-    // Add timeout to prevent hanging
+    // Add shorter timeout to prevent hanging
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Search timeout')), 30000)
+      setTimeout(() => reject(new Error('Search timeout after 15 seconds')), 15000)
     })
 
     const searchPromise = zai.functions.invoke("web_search", {
@@ -54,11 +56,11 @@ export async function POST(request: NextRequest) {
 
     const searchResult = await Promise.race([searchPromise, timeoutPromise])
     
-    console.log('📊 Search results received:', Array.isArray(searchResult) ? searchResult.length : 'Invalid format')
+    console.log('📊 Search completed, validating response...')
     
     // Validate response format
-    if (!Array.isArray(searchResult)) {
-      console.log('⚠️ Invalid response format:', typeof searchResult)
+    if (!searchResult) {
+      console.log('⚠️ No search result received')
       return NextResponse.json({
         success: true,
         results: [],
@@ -68,13 +70,35 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log('🔍 First result preview:', searchResult[0] ? JSON.stringify(searchResult[0], null, 2).substring(0, 200) + '...' : 'No results')
+    if (!Array.isArray(searchResult)) {
+      console.log('⚠️ Invalid response format:', typeof searchResult)
+      console.log('🔍 Response preview:', JSON.stringify(searchResult).substring(0, 200))
+      return NextResponse.json({
+        success: true,
+        results: [],
+        query: query,
+        count: 0,
+        message: 'Invalid response format from search API'
+      })
+    }
+
+    console.log('📊 Search results received:', searchResult.length)
+    
+    // Validate each result has required fields
+    const validResults = searchResult.filter(result => 
+      result && 
+      typeof result === 'object' && 
+      result.url && 
+      result.name
+    )
+
+    console.log('✅ Valid results:', validResults.length, 'of', searchResult.length)
 
     return NextResponse.json({
       success: true,
-      results: searchResult,
+      results: validResults,
       query: query,
-      count: searchResult.length
+      count: validResults.length
     })
 
   } catch (error: any) {
@@ -85,6 +109,7 @@ export async function POST(request: NextRequest) {
       name: error.name
     })
     
+    // Return proper JSON error response
     return NextResponse.json(
       { 
         success: false,
