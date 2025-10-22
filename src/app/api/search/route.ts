@@ -1,6 +1,237 @@
 import { NextRequest, NextResponse } from 'next/server'
 import ZAI from 'z-ai-web-dev-sdk'
 
+// DuckDuckGo instant answer API
+async function getDuckDuckGoResults(query: string) {
+  try {
+    const response = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&pretty=1`)
+    
+    if (!response.ok) {
+      throw new Error(`DuckDuckGo API error: ${response.status}`)
+    }
+    
+    const data = await response.json()
+    const currentDate = new Date().toISOString().split('T')[0]
+    
+    const results = []
+    
+    // Add instant answer if available
+    if (data.Abstract) {
+      results.push({
+        url: data.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+        name: data.Heading || query,
+        snippet: data.Abstract,
+        host_name: "duckduckgo.com",
+        rank: 1,
+        date: currentDate,
+        favicon: ""
+      })
+    }
+    
+    // Add related topics
+    if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
+      data.RelatedTopics.slice(0, 5).forEach((topic: any, index: number) => {
+        if (topic.Text && topic.FirstURL) {
+          results.push({
+            url: topic.FirstURL,
+            name: topic.Text.split(' - ')[0] || topic.Text.substring(0, 50),
+            snippet: topic.Text,
+            host_name: new URL(topic.FirstURL).hostname,
+            rank: results.length + 1,
+            date: currentDate,
+            favicon: ""
+          })
+        }
+      })
+    }
+    
+    // If no results, create generic ones
+    if (results.length === 0) {
+      results.push({
+        url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+        name: `Search results for "${query}"`,
+        snippet: `Find information about ${query} using DuckDuckGo's privacy-focused search engine.`,
+        host_name: "duckduckgo.com",
+        rank: 1,
+        date: currentDate,
+        favicon: ""
+      })
+    }
+    
+    return results.slice(0, 8) // Limit to 8 results
+    
+  } catch (error) {
+    console.error('DuckDuckGo search failed:', error)
+    return []
+  }
+}
+
+// Dynamic mock results generator
+function generateMockResults(query: string) {
+  const queryLower = query.toLowerCase()
+  const currentDate = new Date().toISOString().split('T')[0]
+  
+  // Define mock data for different search categories
+  const mockData = {
+    android: [
+      {
+        url: "https://www.android.com",
+        name: "Android Official Website",
+        snippet: "Android is a mobile operating system developed by Google. Find the latest features, updates, and developer resources.",
+        host_name: "android.com",
+        rank: 1,
+        date: currentDate,
+        favicon: ""
+      },
+      {
+        url: "https://developer.android.com",
+        name: "Android Developers - Official Documentation",
+        snippet: "Official Android development documentation, SDK downloads, and API guides for app developers.",
+        host_name: "developer.android.com",
+        rank: 2,
+        date: currentDate,
+        favicon: ""
+      },
+      {
+        url: "https://play.google.com",
+        name: "Google Play Store",
+        snippet: "Download apps, games, movies, books, and more on your Android device.",
+        host_name: "play.google.com",
+        rank: 3,
+        date: currentDate,
+        favicon: ""
+      }
+    ],
+    iphone: [
+      {
+        url: "https://www.apple.com/iphone",
+        name: "iPhone - Apple",
+        snippet: "Discover the new iPhone with advanced features, A17 Pro chip, and revolutionary camera system.",
+        host_name: "apple.com",
+        rank: 1,
+        date: currentDate,
+        favicon: ""
+      },
+      {
+        url: "https://developer.apple.com/ios",
+        name: "iOS Development - Apple Developer",
+        snippet: "Build, test, and distribute your apps on the App Store with iOS development tools.",
+        host_name: "developer.apple.com",
+        rank: 2,
+        date: currentDate,
+        favicon: ""
+      }
+    ],
+    "cyberpunk": [
+      {
+        url: "https://www.cyberpunk.net",
+        name: "Cyberpunk 2077 - Official Website",
+        snippet: "Welcome to Night City! Explore the world of Cyberpunk 2077, the open-world action-adventure game.",
+        host_name: "cyberpunk.net",
+        rank: 1,
+        date: currentDate,
+        favicon: ""
+      },
+      {
+        url: "https://en.wikipedia.org/wiki/Cyberpunk",
+        name: "Cyberpunk - Wikipedia",
+        snippet: "Cyberpunk is a subgenre of science fiction focusing on high-tech, low life settings featuring advanced technology.",
+        host_name: "wikipedia.org",
+        rank: 2,
+        date: currentDate,
+        favicon: ""
+      }
+    ],
+    "search engine": [
+      {
+        url: "https://www.google.com",
+        name: "Google Search",
+        snippet: "Search the world's information, including webpages, images, videos and more.",
+        host_name: "google.com",
+        rank: 1,
+        date: currentDate,
+        favicon: ""
+      },
+      {
+        url: "https://www.bing.com",
+        name: "Microsoft Bing",
+        snippet: "Bing helps you turn information into action, making it faster and easier to go from searching to doing.",
+        host_name: "bing.com",
+        rank: 2,
+        date: currentDate,
+        favicon: ""
+      },
+      {
+        url: "https://duckduckgo.com",
+        name: "DuckDuckGo",
+        snippet: "The Internet privacy company that empowers you to seamlessly take control of your personal information.",
+        host_name: "duckduckgo.com",
+        rank: 3,
+        date: currentDate,
+        favicon: ""
+      }
+    ],
+    "nextjs": [
+      {
+        url: "https://nextjs.org",
+        name: "Next.js by Vercel",
+        snippet: "The React Framework for Production. Next.js gives you the best developer experience.",
+        host_name: "nextjs.org",
+        rank: 1,
+        date: currentDate,
+        favicon: ""
+      },
+      {
+        url: "https://vercel.com",
+        name: "Vercel - Develop. Preview. Ship.",
+        snippet: "Vercel is the platform for frontend developers, providing the speed and reliability.",
+        host_name: "vercel.com",
+        rank: 2,
+        date: currentDate,
+        favicon: ""
+      }
+    ]
+  }
+  
+  // Find matching category
+  for (const [category, results] of Object.entries(mockData)) {
+    if (queryLower.includes(category)) {
+      return results
+    }
+  }
+  
+  // Generate generic results for unknown queries
+  return [
+    {
+      url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
+      name: `Search results for "${query}"`,
+      snippet: `Find information about ${query} on the web. Get the latest news, articles, and resources related to ${query}.`,
+      host_name: "google.com",
+      rank: 1,
+      date: currentDate,
+      favicon: ""
+    },
+    {
+      url: `https://en.wikipedia.org/wiki/${encodeURIComponent(query)}`,
+      name: `${query} - Wikipedia`,
+      snippet: `Learn about ${query} from the free encyclopedia. Get comprehensive information about ${query} including history, facts, and references.`,
+      host_name: "wikipedia.org",
+      rank: 2,
+      date: currentDate,
+      favicon: ""
+    },
+    {
+      url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+      name: `Videos about ${query} - YouTube`,
+      snippet: `Watch videos related to ${query}. Find tutorials, reviews, and content about ${query} on YouTube.`,
+      host_name: "youtube.com",
+      rank: 3,
+      date: currentDate,
+      favicon: ""
+    }
+  ]
+}
+
 export async function POST(request: NextRequest) {
   console.log('🔍 Search API called')
   
@@ -117,32 +348,33 @@ export async function POST(request: NextRequest) {
         name: zaiError.name
       })
       
-      // Return mock results if ZAI fails
-      console.log('🔄 Returning mock results due to ZAI error')
+      // Try alternative search engine (DuckDuckGo)
+      console.log('🔄 Trying alternative search engine...')
+      try {
+        const ddgResults = await getDuckDuckGoResults(query)
+        if (ddgResults.length > 0) {
+          console.log('✅ DuckDuckGo search successful')
+          return NextResponse.json({
+            success: true,
+            results: ddgResults,
+            query: query,
+            count: ddgResults.length,
+            source: 'duckduckgo'
+          })
+        }
+      } catch (ddgError) {
+        console.error('❌ DuckDuckGo also failed:', ddgError)
+      }
+      
+      // Return dynamic mock results as final fallback
+      console.log('🔄 Returning dynamic mock results due to ZAI error')
+      const mockResults = generateMockResults(query)
+      
       return NextResponse.json({
         success: true,
-        results: [
-          {
-            url: "https://www.android.com",
-            name: "Android Official Website",
-            snippet: "Android is a mobile operating system developed by Google.",
-            host_name: "android.com",
-            rank: 1,
-            date: "2024-01-01",
-            favicon: ""
-          },
-          {
-            url: "https://developer.android.com",
-            name: "Android Developers",
-            snippet: "Official Android development documentation and resources.",
-            host_name: "developer.android.com",
-            rank: 2,
-            date: "2024-01-01",
-            favicon: ""
-          }
-        ],
+        results: mockResults,
         query: query,
-        count: 2,
+        count: mockResults.length,
         mock: true
       })
     }

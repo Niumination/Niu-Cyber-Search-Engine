@@ -210,9 +210,9 @@ export default function Home() {
                   <p className="text-green-400 font-mono">
                     FOUND {results.length} RESULTS_IN_THE_MATRIX
                   </p>
-                  {results.some(r => (r as any).mock) && (
+                  {(results.some(r => (r as any).mock) || (results[0] as any)?.source) && (
                     <p className="text-yellow-400 font-mono text-sm mt-2">
-                      🎭 SIMULATION_MODE - ZAI_API_UNAVAILABLE
+                      🎭 {(results[0] as any)?.source === 'duckduckgo' ? 'DUCKDUCKGO_MODE' : 'SIMULATION_MODE'} - ALTERNATIVE_SEARCH_ACTIVE
                     </p>
                   )}
                 </div>
