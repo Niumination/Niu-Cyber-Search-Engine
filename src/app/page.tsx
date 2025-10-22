@@ -120,7 +120,7 @@ export default function Home() {
               <div className="absolute inset-0 blur-xl bg-cyan-400/50 animate-pulse"></div>
             </div>
             <h1 className="text-6xl md:text-8xl font-bold bg-gradient-to-r from-cyan-400 via-green-400 to-pink-500 bg-clip-text text-transparent">
-              CYBER
+              NIU CYBER
             </h1>
             <div className="relative">
               <Globe className="w-12 h-12 text-pink-500 animate-pulse" />
